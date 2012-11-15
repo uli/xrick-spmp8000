@@ -13,7 +13,8 @@
 
 #include <stdlib.h> /* malloc */
 
-#include <SDL.h>
+#include <libgame.h>
+#include <string.h>
 
 #include "system.h"
 #include "game.h"
@@ -27,9 +28,8 @@
 U8 *sysvid_fb; /* frame buffer */
 rect_t SCREENRECT = {0, 0, SYSVID_WIDTH, SYSVID_HEIGHT, NULL}; /* whole fb */
 
-static SDL_Color palette[256];
-static SDL_Surface *screen;
-static U32 videoFlags;
+static uint16_t palette[256];
+static emu_graph_params_t gp;
 
 static U8 zoom = SYSVID_ZOOM; /* actual zoom level */
 static U8 szoom = 0;  /* saved zoom level */
@@ -82,9 +82,17 @@ static U8 BLUE[] = { 0x00, 0x00, 0x68, 0x68,
  * Initialize screen
  */
 static
-SDL_Surface *initScreen(U16 w, U16 h, U8 bpp, U32 flags)
+void initScreen(U16 w, U16 h)
 {
-  return SDL_SetVideoMode(w, h, bpp, flags);
+  gp.pixels = malloc(w * h * 2);
+  gp.width = w;
+  gp.height = h;
+  gp.unknown_flag = 0;
+  gp.src_clip_x = 0;
+  gp.src_clip_y = 0;
+  gp.src_clip_w = w;
+  gp.src_clip_h = h;
+  emuIfGraphInit(&gp);
 }
 
 void
@@ -93,17 +101,13 @@ sysvid_setPalette(img_color_t *pal, U16 n)
   U16 i;
 
   for (i = 0; i < n; i++) {
-    palette[i].r = pal[i].r;
-    palette[i].g = pal[i].g;
-    palette[i].b = pal[i].b;
+    palette[i] = MAKE_RGB565(pal[i].r, pal[i].g, pal[i].b);
   }
-  SDL_SetColors(screen, (SDL_Color *)&palette, 0, n);
 }
 
 void
 sysvid_restorePalette()
 {
-  SDL_SetColors(screen, (SDL_Color *)&palette, 0, 256);
 }
 
 void
@@ -126,113 +130,28 @@ sysvid_setGamePalette()
 void
 sysvid_chkvm(void)
 {
-  SDL_Rect **modes;
-  U8 i, mode = 0;
-
-  IFDEBUG_VIDEO(sys_printf("xrick/video: checking video modes\n"););
-
-  modes = SDL_ListModes(NULL, videoFlags|SDL_FULLSCREEN);
-
-  if (modes == (SDL_Rect **)0)
-    sys_panic("xrick/video: SDL can not find an appropriate video mode\n");
-
-  if (modes == (SDL_Rect **)-1) {
-    /* can do what you want, everything is possible */
-    IFDEBUG_VIDEO(sys_printf("xrick/video: SDL says any video mode is OK\n"););
-    fszoom = 1;
-  }
-  else {
-    IFDEBUG_VIDEO(sys_printf("xrick/video: SDL says, use these modes:\n"););
-    for (i = 0; modes[i]; i++) {
-      IFDEBUG_VIDEO(sys_printf("  %dx%d\n", modes[i]->w, modes[i]->h););
-      if (modes[i]->w <= modes[mode]->w && modes[i]->w >= SYSVID_WIDTH &&
-	  modes[i]->h * SYSVID_WIDTH >= modes[i]->w * SYSVID_HEIGHT) {
-	mode = i;
-	fszoom = modes[mode]->w / SYSVID_WIDTH;
-      }
-    }
-    if (fszoom != 0) {
-      IFDEBUG_VIDEO(
-        sys_printf("xrick/video: fullscreen at %dx%d w/zoom=%d\n",
-		   modes[mode]->w, modes[mode]->h, fszoom);
-	);
-    }
-    else {
-      IFDEBUG_VIDEO(
-        sys_printf("xrick/video: can not compute fullscreen zoom, use 1\n");
-	);
-      fszoom = 1;
-    }
-  }
+  fszoom = 1;
 }
 
+extern emu_keymap_t keymap;
 /*
  * Initialise video
  */
 void
 sysvid_init(void)
 {
-  SDL_Surface *s;
-  U8 *mask, tpix;
-  U32 len, i;
-
-  IFDEBUG_VIDEO(printf("xrick/video: start\n"););
-
-  /* SDL */
-  if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) < 0)
-    sys_panic("xrick/video: could not init SDL\n");
-
-  /* various WM stuff */
-  SDL_WM_SetCaption("xrick", "xrick");
-  SDL_ShowCursor(SDL_DISABLE);
-  s = SDL_CreateRGBSurfaceFrom(IMG_ICON->pixels, IMG_ICON->w, IMG_ICON->h, 8, IMG_ICON->w, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
-  SDL_SetColors(s, (SDL_Color *)IMG_ICON->colors, 0, IMG_ICON->ncolors);
-
-  tpix = *(IMG_ICON->pixels);
-  IFDEBUG_VIDEO(
-    sys_printf("xrick/video: icon is %dx%d\n",
-	       IMG_ICON->w, IMG_ICON->h);
-    sys_printf("xrick/video: icon transp. color is #%d (%d,%d,%d)\n", tpix,
-	       IMG_ICON->colors[tpix].r,
-	       IMG_ICON->colors[tpix].g,
-	       IMG_ICON->colors[tpix].b);
-    );
-	/*
-
-	* old dirty stuff to implement transparency. SetColorKey does it
-	* on Windows w/out problems. Linux? FIXME!
-
-  len = IMG_ICON->w * IMG_ICON->h;
-  mask = (U8 *)malloc(len/8);
-  memset(mask, 0, len/8);
-  for (i = 0; i < len; i++)
-    if (IMG_ICON->pixels[i] != tpix) mask[i/8] |= (0x80 >> (i%8));
-	*/
-  /*
-   * FIXME
-   * Setting a mask produces strange results depending on the
-   * Window Manager. On fvwm2 it is shifted to the right ...
-   */
-  /*SDL_WM_SetIcon(s, mask);*/
-	SDL_SetColorKey(s,
-                    SDL_SRCCOLORKEY,
-                    SDL_MapRGB(s->format,IMG_ICON->colors[tpix].r,IMG_ICON->colors[tpix].g,IMG_ICON->colors[tpix].b));
-
-  SDL_WM_SetIcon(s, NULL);
+  IFDEBUG_VIDEO(sys_printf("xrick/video: start\n"););
 
   /* video modes and screen */
-  videoFlags = SDL_HWSURFACE|SDL_HWPALETTE;
   sysvid_chkvm();  /* check video modes */
   if (sysarg_args_zoom)
     zoom = sysarg_args_zoom;
   if (sysarg_args_fullscreen) {
-    videoFlags |= SDL_FULLSCREEN;
     szoom = zoom;
     zoom = fszoom;
   }
-  screen = initScreen(SYSVID_WIDTH * zoom,
-		      SYSVID_HEIGHT * zoom,
-		      8, videoFlags);
+  initScreen(SYSVID_WIDTH * zoom,
+		      SYSVID_HEIGHT * zoom);
 
   /*
    * create v_ frame buffer
@@ -241,7 +160,9 @@ sysvid_init(void)
   if (!sysvid_fb)
     sys_panic("xrick/video: sysvid_fb malloc failed\n");
 
-  IFDEBUG_VIDEO(printf("xrick/video: ready\n"););
+  IFDEBUG_VIDEO(sys_printf("xrick/video: ready\n"););
+  
+  emuIfKeyInit(&keymap);
 }
 
 /*
@@ -253,7 +174,8 @@ sysvid_shutdown(void)
   free(sysvid_fb);
   sysvid_fb = NULL;
 
-  SDL_Quit();
+  emuIfGraphCleanup();
+  emuIfKeyCleanup(&keymap);
 }
 
 /*
@@ -263,20 +185,18 @@ sysvid_shutdown(void)
 void
 sysvid_update(rect_t *rects)
 {
-  static SDL_Rect area;
   U16 x, y, xz, yz;
-  U8 *p, *q, *p0, *q0;
+  U8 *p, *p0;
+  uint16_t *q;
+  uint16_t *q0;
 
   if (rects == NULL)
     return;
 
-  if (SDL_LockSurface(screen) == -1)
-    sys_panic("xrick/panic: SDL_LockSurface failed\n");
-
   while (rects) {
     p0 = sysvid_fb;
     p0 += rects->x + rects->y * SYSVID_WIDTH;
-    q0 = (U8 *)screen->pixels;
+    q0 = gp.pixels;
     q0 += (rects->x + rects->y * SYSVID_WIDTH * zoom) * zoom;
 
     for (y = rects->y; y < rects->y + rects->height; y++) {
@@ -285,7 +205,7 @@ sysvid_update(rect_t *rects)
 	q = q0;
 	for (x = rects->x; x < rects->x + rects->width; x++) {
 	  for (xz = 0; xz < zoom; xz++) {
-	    *q = *p;
+	    *q = palette[*p];
 	    q++;
 	  }
 	  p++;
@@ -311,16 +231,9 @@ sysvid_update(rect_t *rects)
       }
     );
 
-    area.x = rects->x * zoom;
-    area.y = rects->y * zoom;
-    area.h = rects->height * zoom;
-    area.w = rects->width * zoom;
-    SDL_UpdateRects(screen, 1, &area);
-
     rects = rects->next;
   }
-
-  SDL_UnlockSurface(screen);
+  emuIfGraphShow();
 }
 
 
@@ -341,16 +254,7 @@ sysvid_clear(void)
 void
 sysvid_zoom(S8 z)
 {
-  if (!(videoFlags & SDL_FULLSCREEN) &&
-      ((z < 0 && zoom > 1) ||
-       (z > 0 && zoom < SYSVID_MAXZOOM))) {
-    zoom += z;
-    screen = initScreen(SYSVID_WIDTH * zoom,
-			SYSVID_HEIGHT * zoom,
-			screen->format->BitsPerPixel, videoFlags);
-    sysvid_restorePalette();
-    sysvid_update(&SCREENRECT);
-  }
+  (void)z;
 }
 
 /*
@@ -359,20 +263,6 @@ sysvid_zoom(S8 z)
 void
 sysvid_toggleFullscreen(void)
 {
-  videoFlags ^= SDL_FULLSCREEN;
-
-  if (videoFlags & SDL_FULLSCREEN) {  /* go fullscreen */
-    szoom = zoom;
-    zoom = fszoom;
-  }
-  else {  /* go window */
-    zoom = szoom;
-  }
-  screen = initScreen(SYSVID_WIDTH * zoom,
-		      SYSVID_HEIGHT * zoom,
-		      screen->format->BitsPerPixel, videoFlags);
-  sysvid_restorePalette();
-  sysvid_update(&SCREENRECT);
 }
 
 /* eof */
