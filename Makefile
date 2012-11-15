@@ -1,89 +1,12 @@
-#
-# xrick/Makefile
-#
-# Copyright (C) 1998-2002 BigOrno (bigorno@bigorno.net). All rights reserved.
-#
-# The use and distribution terms for this software are contained in the file
-# named README, which can be found in the root of this distribution. By
-# using this software in any fashion, you are agreeing to be bound by the
-# terms of this license.
-#
-# You must not remove this notice, or any other, from this software.
-#
+LIBSPMP8K = ../..
 
-#
-# Vars
-#
+TARGET	= xrick
 
-SDLVERSION=$(shell sdl-config --version 2>/dev/null)
-ROOTDIR=$(shell pwd)
-TARGET=$(shell uname -s | tr [a-z] [A-Z])
+OBJS = src/unzip.o src/data.o src/scr_xrick.o src/scr_pause.o src/scr_imain.o src/scr_imap.o src/scr_gameover.o src/scr_getname.o src/dat_picsPC.o src/dat_picsST.o src/dat_screens.o src/dat_tilesPC.o src/dat_tilesST.o src/dat_maps.o src/dat_ents.o src/dat_spritesST.o src/dat_spritesPC.o src/ents.o src/e_bullet.o src/e_bomb.o src/e_rick.o src/e_sbonus.o src/e_them.o src/e_bonus.o src/e_box.o src/rects.o src/util.o src/game.o src/xrick.o src/draw.o src/maps.o src/sysvid.o src/syskbd.o src/control.o src/system.o src/scroller.o src/sysevt.o src/sysarg.o src/syssnd.o src/sysjoy.o src/dat_snd.o
 
-#
-# Config
-#
+LIBS	= -lgame -lz -lc -lgcc
 
-ifeq ($(strip $(SDLVERSION)),) 
-$(error SDL is missing) 
-else 
-$(warning Detected SDL version $(SDLVERSION)) 
-endif
+include $(LIBSPMP8K)/main.cfg
+include $(LIBGAME)/libgame.mk
 
-ifeq ($(strip $(SDLVERSION)),)
-$(error SDL is missing)
-endif
-
-SDL_MAJ=$(word 1,$(subst ., ,$(SDLVERSION)))
-SDL_MIN=$(word 2,$(subst ., ,$(SDLVERSION)))
-SDL_MIC=$(word 3,$(subst ., ,$(SDLVERSION)))
-
-SDL_MAJ_REQ=1
-SDL_MIN_REQ=2
-SDL_MIC_REQ=1
-
-SDL_CHKVER=$(shell if [ $(SDL_MAJ) -lt $(SDL_MAJ_REQ) ]; then echo "BAD"; fi)
-ifeq ($(SDL_CHKVER),BAD)
-$(error SDL version $(SDL_MAJ_REQ).$(SDL_MIN_REQ).$(SDL_MIC_REQ) is required)
-endif
-
-SDL_CHKVER=$(shell if [ $(SDL_MAJ) -eq $(SDL_MAJ_REQ) -a $(SDL_MIN) -lt $(SDL_MIN_REQ) ]; then echo "BAD"; fi)
-ifeq ($(SDL_CHKVER),BAD)
-$(error SDL version $(SDL_MAJ_REQ).$(SDL_MIN_REQ).$(SDL_MIC_REQ) is required)
-endif
-
-SDL_CHKVER=$(shell if [ $(SDL_MAJ) -eq $(SDL_MAJ_REQ) -a $(SDL_MIN) -eq $(SDL_MIN_REQ) -a $(SDL_MIC) -lt $(SDL_MIC_REQ) ]; then echo "BAD"; fi)
-ifeq ($(SDL_CHKVER),BAD)
-$(error SDL version $(SDL_MAJ_REQ).$(SDL_MIN_REQ).$(SDL_MIC_REQ) is required)
-endif
-
-ifneq (,$(findstring CYGWIN,$(TARGET)))
-XOBJ=xrick.res
-endif
-
-ifneq (,$(findstring MINGW,$(TARGET)))
-XOBJ=xrick.res
-endif
-
-#
-# Rules
-#
-
-all:
-	@echo "ROOTDIR=$(ROOTDIR)" > Makefile.global
-	@echo "XOBJ=$(XOBJ)" >> Makefile.global
-	@echo "CFLAGS=-g -ansi -pedantic -Wall -W -O2 -I $(ROOTDIR)/include $(shell sdl-config --cflags)" >> Makefile.global
-	@echo "LDFLAGS=-lz $(shell sdl-config --libs)" >> Makefile.global
-	@echo "CC=gcc" >> Makefile.global
-	@echo "CPP=gcc -E" >> Makefile.global
-	$(MAKE) -C src all
-
-clean:
-	for i in src include; do \
-	  $(MAKE) -C $$i clean; \
-	done
-	rm -f *~ log.txt Makefile.global
-
-depend:
-	$(MAKE) -C src depend
-
-# eof
+CFLAGS += -Iinclude -O2 -W -Wall
