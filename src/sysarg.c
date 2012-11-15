@@ -18,7 +18,7 @@
 #include <stdlib.h>  /* atoi */
 #include <string.h>  /* strcasecmp */
 
-#include <SDL.h>
+#include <libgame.h>
 
 #include "system.h"
 #include "config.h"
@@ -36,10 +36,6 @@ typedef struct {
   char name[16];
   int code;
 } sdlcodes_t;
-
-static sdlcodes_t sdlcodes[SDLK_LAST] = {
-#include "sdlcodes.e"
-};
 
 int sysarg_args_period = 0;
 int sysarg_args_map = 0;
@@ -64,6 +60,7 @@ sysarg_fail(char *msg)
 	exit(1);
 }
 
+#if 0
 /*
  * Get SDL key code
  */
@@ -134,6 +131,7 @@ sysarg_scankeys(char *keys)
 
   return 0;
 }
+#endif
 
 /*
  * Read and process arguments
@@ -141,6 +139,7 @@ sysarg_scankeys(char *keys)
 void
 sysarg_init(int argc, char **argv)
 {
+#if 0
   int i;
 
   for (i = 1; i < argc; i++) {
@@ -223,7 +222,7 @@ sysarg_init(int argc, char **argv)
       sysarg_args_submap == 20 ||
       sysarg_args_submap == 38)
     sysarg_args_submap = 0;
-
+#endif
 }
 
 /* eof */
