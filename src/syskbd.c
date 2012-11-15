@@ -11,18 +11,18 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-#include <SDL.h>
+#include <libgame.h>
 
 #include "system.h"
 
-U8 syskbd_up = SDLK_o;
-U8 syskbd_down = SDLK_k;
-U8 syskbd_left = SDLK_z;
-U8 syskbd_right = SDLK_x;
-U8 syskbd_pause = SDLK_p;
-U8 syskbd_end = SDLK_e;
-U8 syskbd_xtra = SDLK_ESCAPE;
-U8 syskbd_fire = SDLK_SPACE;
+U8 syskbd_up = EMU_KEY_UP;
+U8 syskbd_down = EMU_KEY_DOWN;
+U8 syskbd_left = EMU_KEY_LEFT;
+U8 syskbd_right = EMU_KEY_RIGHT;
+U8 syskbd_pause = EMU_KEY_START;
+U8 syskbd_end = EMU_KEY_L;
+U8 syskbd_xtra = EMU_KEY_R;
+U8 syskbd_fire = EMU_KEY_O | EMU_KEY_X;
 
 /* eof */
 
