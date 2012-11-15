@@ -22,7 +22,7 @@ U8 syskbd_right = EMU_KEY_RIGHT;
 U8 syskbd_pause = EMU_KEY_START;
 U8 syskbd_end = EMU_KEY_L;
 U8 syskbd_xtra = EMU_KEY_R;
-U8 syskbd_fire = EMU_KEY_O | EMU_KEY_X;
+U8 syskbd_fire = EMU_KEY_O;
 
 /* eof */
 

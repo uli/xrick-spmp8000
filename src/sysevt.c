@@ -43,56 +43,56 @@ processEvent(uint32_t keys, uint32_t mask)
     SETBIT(control_status, CONTROL_UP);
     control_last = CONTROL_UP;
   }
-  else if (keys & keymap.scancode[syskbd_down] || keys & keymap.scancode[EMU_KEY_DOWN]) {
+  if (keys & keymap.scancode[syskbd_down] || keys & keymap.scancode[EMU_KEY_DOWN]) {
     SETBIT(control_status, CONTROL_DOWN);
     control_last = CONTROL_DOWN;
   }
-  else if (keys & keymap.scancode[syskbd_left] || keys & keymap.scancode[EMU_KEY_LEFT]) {
+  if (keys & keymap.scancode[syskbd_left] || keys & keymap.scancode[EMU_KEY_LEFT]) {
     SETBIT(control_status, CONTROL_LEFT);
     control_last = CONTROL_LEFT;
   }
-  else if (keys & keymap.scancode[syskbd_right] || keys & keymap.scancode[EMU_KEY_RIGHT]) {
+  if (keys & keymap.scancode[syskbd_right] || keys & keymap.scancode[EMU_KEY_RIGHT]) {
     SETBIT(control_status, CONTROL_RIGHT);
     control_last = CONTROL_RIGHT;
   }
-  else if (keys & keymap.scancode[syskbd_pause]) {
+  if (keys & keymap.scancode[syskbd_pause]) {
     SETBIT(control_status, CONTROL_PAUSE);
     control_last = CONTROL_PAUSE;
   }
-  else if (keys & keymap.scancode[syskbd_end]) {
+  if (keys & keymap.scancode[syskbd_end]) {
     SETBIT(control_status, CONTROL_END);
     control_last = CONTROL_END;
   }
-  else if (keys & keymap.scancode[syskbd_xtra]) {
+  if (keys & keymap.scancode[syskbd_xtra]) {
     SETBIT(control_status, CONTROL_EXIT);
     control_last = CONTROL_EXIT;
   }
-  else if (keys & keymap.scancode[syskbd_fire]) {
+  if (keys & keymap.scancode[syskbd_fire]) {
     SETBIT(control_status, CONTROL_FIRE);
     control_last = CONTROL_FIRE;
   }
   if (!(keys & keymap.scancode[syskbd_up] || keys & keymap.scancode[EMU_KEY_UP])) {
     CLRBIT(control_status, CONTROL_UP);
   }
-  else if (!(keys & keymap.scancode[syskbd_down] || keys & keymap.scancode[EMU_KEY_DOWN])) {
+  if (!(keys & keymap.scancode[syskbd_down] || keys & keymap.scancode[EMU_KEY_DOWN])) {
     CLRBIT(control_status, CONTROL_DOWN);
   }
-  else if (!(keys & keymap.scancode[syskbd_left] || keys & keymap.scancode[EMU_KEY_LEFT])) {
+  if (!(keys & keymap.scancode[syskbd_left] || keys & keymap.scancode[EMU_KEY_LEFT])) {
     CLRBIT(control_status, CONTROL_LEFT);
   }
-  else if (!(keys & keymap.scancode[syskbd_right] || keys & keymap.scancode[EMU_KEY_RIGHT])) {
+  if (!(keys & keymap.scancode[syskbd_right] || keys & keymap.scancode[EMU_KEY_RIGHT])) {
     CLRBIT(control_status, CONTROL_RIGHT);
   }
-  else if (!(keys & keymap.scancode[syskbd_pause])) {
+  if (!(keys & keymap.scancode[syskbd_pause])) {
     CLRBIT(control_status, CONTROL_PAUSE);
   }
-  else if (!(keys & keymap.scancode[syskbd_end])) {
+  if (!(keys & keymap.scancode[syskbd_end])) {
     CLRBIT(control_status, CONTROL_END);
   }
-  else if (!(keys & keymap.scancode[syskbd_xtra])) {
+  if (!(keys & keymap.scancode[syskbd_xtra])) {
     CLRBIT(control_status, CONTROL_EXIT);
   }
-  else if (!(keys & keymap.scancode[syskbd_fire])) {
+  if (!(keys & keymap.scancode[syskbd_fire])) {
     CLRBIT(control_status, CONTROL_FIRE);
   }
 #if 0
@@ -203,8 +203,7 @@ void
 sysevt_poll(void)
 {
   uint32_t keys = emuIfKeyGetInput(&keymap);
-  if (keys ^ oldkeys)
-    processEvent(keys, keys ^ oldkeys);
+  processEvent(keys, keys ^ oldkeys);
   oldkeys = keys;
 }
 
@@ -218,8 +217,8 @@ sysevt_wait(void)
   do {
     keys = emuIfKeyGetInput(&keymap);
   } while (!(keys ^ oldkeys));
-  oldkeys = keys;
   processEvent(keys, keys ^ oldkeys);
+  oldkeys = keys;
 }
 
 /* eof */
