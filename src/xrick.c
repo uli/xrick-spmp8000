@@ -13,8 +13,7 @@
 
 #include "system.h"
 #include "game.h"
-
-#include <SDL.h>
+#include <libgame.h>
 
 /*
  * main
@@ -22,6 +21,10 @@
 int
 main(int argc, char *argv[])
 {
+	libgame_init();
+	FILE *fp;
+	if ((fp = fopen("stderr.txt", "w")))
+		stderr = fp;
 	sys_init(argc, argv);
 	if (sysarg_args_data)
 		data_setpath(sysarg_args_data);

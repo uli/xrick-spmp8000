@@ -11,7 +11,7 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-#include <SDL.h>
+#include <libgame.h>
 
 #include <stdarg.h>   /* args for sys_panic */
 #include <fcntl.h>    /* fcntl in sys_panic */
@@ -53,7 +53,6 @@ void
 sys_printf(char *msg, ...)
 {
   va_list argptr;
-  char s[1024];
 
   /* change stdin to non blocking */
   /*fcntl(0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);*/
@@ -62,13 +61,12 @@ sys_printf(char *msg, ...)
 
   /* prepare message */
   va_start(argptr, msg);
-  vsprintf(s, msg, argptr);
+  vfprintf(stderr, msg, argptr);
   va_end(argptr);
-  printf(s);
 }
 
 /*
- * Return number of microseconds elapsed since first call
+ * Return number of milliseconds elapsed since first call
  */
 U32
 sys_gettime(void)
@@ -76,7 +74,7 @@ sys_gettime(void)
   static U32 ticks_base = 0;
   U32 ticks;
 
-  ticks = SDL_GetTicks();
+  ticks = libgame_utime() / 1000;
 
   if (!ticks_base)
     ticks_base = ticks;
@@ -85,12 +83,20 @@ sys_gettime(void)
 }
 
 /*
- * Sleep a number of microseconds
+ * Sleep a number of milliseconds
  */
 void
 sys_sleep(int s)
 {
-  SDL_Delay(s);
+  cyg_thread_delay(s / 10);
+}
+
+static int my_shutdown(uint32_t arg)
+{
+  (void)arg;
+  sys_shutdown();
+  fclose(stderr);
+  return NativeGE_gameExit();
 }
 
 /*
@@ -99,6 +105,7 @@ sys_sleep(int s)
 void
 sys_init(int argc, char **argv)
 {
+        libgame_set_debug(0);
 	sysarg_init(argc, argv);
 	sysvid_init();
 #ifdef ENABLE_JOYSTICK
@@ -108,9 +115,9 @@ sys_init(int argc, char **argv)
 	if (sysarg_args_nosound == 0)
 		syssnd_init();
 #endif
-	atexit(sys_shutdown);
-	signal(SIGINT, exit);
-	signal(SIGTERM, exit);
+        g_stEmuAPIs->exit = my_shutdown;
+//	signal(SIGINT, exit);
+//	signal(SIGTERM, exit);
 }
 
 /*
