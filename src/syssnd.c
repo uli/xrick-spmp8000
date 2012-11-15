@@ -11,9 +11,9 @@
  * You must not remove this notice, or any other, from this software.
  */
 
-#include <SDL.h>
+#include <libgame.h>
 #include <stdlib.h>
-#include <memory.h>
+//#include <memory.h>
 
 #include "config.h"
 
