@@ -21,6 +21,7 @@
 
 #include "img_splash.e"
 
+#include "version.h"
 /*
  * Display XRICK splash screen
  *
@@ -39,6 +40,9 @@ screen_xrick(void)
 		                   "@@@ULRICH@HECHT@@@\376";
 		draw_setfb(80, 0);
 		//draw_filter = 0x5555;
+		draw_tilesList();
+		draw_tllst = (U8 *)"R" BUILD_STRING "\376";
+		draw_setfb(0, 0);
 		draw_tilesList();
 		game_rects = &draw_SCREENRECT;
 		seq = 1;

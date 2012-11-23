@@ -10,3 +10,7 @@ include $(LIBSPMP8K)/main.cfg
 include $(LIBGAME)/libgame.mk
 
 CFLAGS += -Iinclude -O2 -W -Wall
+
+include/version.h: .git/index
+	build_no=`git rev-list HEAD | wc -l | sed -e 's/ *//g' | xargs -n1 printf %d`.`git show HEAD|head -n1|cut -c8-11|tr a-z A-Z`; \
+	echo "#define BUILD_STRING \"$$build_no\"" > $@
