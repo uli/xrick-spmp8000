@@ -35,6 +35,11 @@ screen_xrick(void)
 	if (seq == 0) {
 		sysvid_clear();
 		draw_img(IMG_SPLASH);
+		draw_tllst = (U8 *)"@SPMP8000@PORT@BY@\377"
+		                   "@@@ULRICH@HECHT@@@\376";
+		draw_setfb(80, 0);
+		//draw_filter = 0x5555;
+		draw_tilesList();
 		game_rects = &draw_SCREENRECT;
 		seq = 1;
 	}
@@ -51,7 +56,7 @@ screen_xrick(void)
 		break;
 
 	case 2:  /* wait */
-		if (wait++ > 0x20) {
+		if (wait++ > 0x60) {
 			seq = 99;
 			wait = 0;
 		}
@@ -59,6 +64,8 @@ screen_xrick(void)
 
 	if (control_status & CONTROL_EXIT)  /* check for exit request */
 		return SCREEN_EXIT;
+        if (control_status & CONTROL_FIRE)
+                seq = 99;
 
 	if (seq == 99) {  /* we're done */
 		sysvid_clear();
