@@ -20,6 +20,7 @@
 #include <signal.h>
 
 #include "system.h"
+#include "syssnd.h"
 
 /*
  * Panic
@@ -28,7 +29,6 @@ void
 sys_panic(char *err, ...)
 {
   va_list argptr;
-  char s[1024];
 
   /* change stdin to non blocking */
   /*fcntl(0, F_SETFL, fcntl (0, F_GETFL, 0) & ~FNDELAY);*/
@@ -87,7 +87,10 @@ sys_gettime(void)
 void
 sys_sleep(int s)
 {
-  cyg_thread_delay(s / 10);
+  U32 tm = sys_gettime();
+  while (sys_gettime() - tm < (U32)s) {
+    syssnd_callback();
+  }
 }
 
 static int my_shutdown(uint32_t arg)

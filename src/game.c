@@ -29,6 +29,8 @@
 #include "control.h"
 #include "data.h"
 
+#include "syssnd.h"
+
 #ifdef ENABLE_DEVTOOLS
 #include "devtools.h"
 #endif
@@ -183,15 +185,13 @@ game_toggleCheat(U8 nbr)
 void
 game_setmusic(char *name, U8 loop)
 {
-	U8 channel;
-
 	if (music_snd)
 		game_stopmusic();
 	music_snd = syssnd_load(name);
 	if (music_snd)
 	{
 		music_snd->dispose = TRUE; /* music is always "fire and forget" */
-		channel = syssnd_play(music_snd, loop);
+		syssnd_play(music_snd, loop);
 	}
 }
 
@@ -209,7 +209,10 @@ game_stopmusic(void)
 void
 game_run(void)
 {
-  U32 tm, tmx;
+  U32 tm;
+#if 0
+  U32 tmx;
+#endif
 
 	loaddata(); /* load cached data */
 
@@ -220,14 +223,37 @@ game_run(void)
 	/* main loop */
 	while (game_state != EXIT) {
 
-		/* timer */
+#if 0
+		/* This code doesn't make any sense to me at all. It waits
+		   until the desired amount of time has passed and then
+		   takes the time at which it started waiting (which is
+		   not synchronous with anything) as the reference point
+		   for the next frame. This sort of works if your system
+		   takes very little time to compute the frame, but fails
+		   horribly otherwise, e.g. if you use blocking I/O
+		   (sound, vblank). */
 		tmx = tm; tm = sys_gettime(); tmx = tm - tmx;
 		if (tmx < game_period) sys_sleep(game_period - tmx);
+#endif
 
 		/* video */
 		/*DEBUG*//*game_rects=&draw_SCREENRECT;*//*DEBUG*/
 		sysvid_update(game_rects);
 		draw_STATUSRECT.next = NULL;  /* FIXME freerects should handle this */
+
+		/* timer */
+		/* Reset the timing if it's way out of line, such as when
+		   the game thread has been paused. */
+		if (sys_gettime() - tm > game_period * 10)
+			tm = sys_gettime() - game_period / 2;
+		/* Update sound while waiting. */
+		do {
+			syssnd_callback();
+		} while (sys_gettime() - tm < game_period / 2);
+		/* Use the time at which the frame should have been complete as
+		   reference for the next frame. This makes it possible to
+		   "catch up" if a frame has taken longer for some reason. */
+		tm = tm + game_period / 2;
 
 		/* sound */
 		/*snd_mix();*/

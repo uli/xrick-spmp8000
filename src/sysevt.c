@@ -26,6 +26,8 @@
 #include "control.h"
 #include "draw.h"
 
+#include "syssnd.h"
+
 #define SYSJOY_RANGE 3280
 
 #define SETBIT(x,b) x |= (b)
@@ -215,6 +217,7 @@ sysevt_wait(void)
 {
   uint32_t keys;
   do {
+    syssnd_callback();
     keys = emuIfKeyGetInput(&keymap);
   } while (!(keys ^ oldkeys));
   processEvent(keys, keys ^ oldkeys);
