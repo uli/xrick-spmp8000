@@ -15,6 +15,11 @@
 #include "game.h"
 #include <libgame.h>
 
+void my_putc(char c)
+{
+	fputc(c, stderr);
+}
+
 /*
  * main
  */
@@ -23,13 +28,16 @@ main(int argc, char *argv[])
 {
 	libgame_init();
 	FILE *fp;
-	if ((fp = fopen("stderr.txt", "w")))
+	if ((fp = fopen("xrick_stderr.txt", "w"))) {
 		stderr = fp;
+		setbuf(fp, NULL);
+		//*_diag_putc = my_putc;
+	}
 	sys_init(argc, argv);
 	if (sysarg_args_data)
 		data_setpath(sysarg_args_data);
 	else
-		data_setpath("data.zip");
+		data_setpath("/fat20a2/hda2/GAME/xrick_data.zip");
 	game_run();
 	data_closepath();
 	sys_shutdown();

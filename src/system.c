@@ -37,11 +37,10 @@ sys_panic(char *err, ...)
 
   /* prepare message */
   va_start(argptr, err);
-  vsprintf(s, err, argptr);
+  vfprintf(stderr, err, argptr);
   va_end(argptr);
 
   /* print message and die */
-  printf("%s\npanic!\n", s);
   exit(1);
 }
 
