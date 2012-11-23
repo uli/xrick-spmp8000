@@ -14,6 +14,7 @@
 #include <libgame.h>
 #include <stdlib.h>
 //#include <memory.h>
+#include <string.h>
 
 #include "config.h"
 
@@ -25,136 +26,39 @@
 #include "debug.h"
 #include "data.h"
 
-#define ADJVOL(S) (((S)*sndVol)/SDL_MIX_MAXVOLUME)
-
 static U8 isAudioActive = FALSE;
-static channel_t channel[SYSSND_MIXCHANNELS];
 
-static U8 sndVol = SDL_MIX_MAXVOLUME;  /* internal volume */
-static U8 sndUVol = SYSSND_MAXVOL;  /* user-selected volume */
 static U8 sndMute = FALSE;  /* mute flag */
 
-static SDL_mutex *sndlock;
-
-/*
- * prototypes
- */
-static int sdlRWops_open(SDL_RWops *context, char *name);
-static int sdlRWops_seek(SDL_RWops *context, int offset, int whence);
-static int sdlRWops_read(SDL_RWops *context, void *ptr, int size, int maxnum);
-static int sdlRWops_write(SDL_RWops *context, const void *ptr, int size, int num);
-static int sdlRWops_close(SDL_RWops *context);
-static void end_channel(U8);
-
-/*
- * Callback -- this is also where all sound mixing is done
- *
- * Note: it may not be that much a good idea to do all the mixing here ; it
- * may be more efficient to mix samples every frame, or maybe everytime a
- * new sound is sent to be played. I don't know.
- */
-void syssnd_callback(UNUSED(void *userdata), U8 *stream, int len)
-{
-  U8 c;
-  S16 s;
-  U32 i;
-
-  SDL_mutexP(sndlock);
-
-  for (i = 0; i < (U32)len; i++) {
-    s = 0;
-    for (c = 0; c < SYSSND_MIXCHANNELS; c++) {
-      if (channel[c].loop != 0) {  /* channel is active */
-	if (channel[c].len > 0) {  /* not ending */
-	  s += ADJVOL(*channel[c].buf - 0x80);
-	  channel[c].buf++;
-	  channel[c].len--;
-	}
-	else {  /* ending */
-	  if (channel[c].loop > 0) channel[c].loop--;
-	  if (channel[c].loop) {  /* just loop */
-	    IFDEBUG_AUDIO2(sys_printf("xrick/audio: channel %d - loop\n", c););
-	    channel[c].buf = channel[c].snd->buf;
-	    channel[c].len = channel[c].snd->len;
-	    s += ADJVOL(*channel[c].buf - 0x80);
-	    channel[c].buf++;
-	    channel[c].len--;
-	  }
-	  else {  /* end for real */
-	    IFDEBUG_AUDIO2(sys_printf("xrick/audio: channel %d - end\n", c););
-	    end_channel(c);
-	  }
-	}
-      }
-    }
-    if (sndMute)
-      stream[i] = 0x80;
-    else {
-      s += 0x80;
-      if (s > 0xff) s = 0xff;
-      if (s < 0x00) s = 0x00;
-      stream[i] = (U8)s;
-    }
-  }
-
-  memcpy(stream, stream, len);
-
-  SDL_mutexV(sndlock);
-}
+typedef struct {
+    char    *audio_data;
+    int     audio_size;
+} audio_data_desc;
+ge_res_entry_t resources[30];
 
 static void
 end_channel(U8 c)
 {
+#if 0
 	channel[c].loop = 0;
 	if (channel[c].snd->dispose)
 		syssnd_free(channel[c].snd);
 	channel[c].snd = NULL;
+#endif
 }
 
 void
 syssnd_init(void)
 {
-  SDL_AudioSpec desired, obtained;
-  U16 c;
-
-  if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-    IFDEBUG_AUDIO(
-      sys_printf("xrick/audio: can not initialize audio subsystem\n");
-      );
-    return;
-  }
-
-  desired.freq = SYSSND_FREQ;
-  desired.format = AUDIO_U8;
-  desired.channels = SYSSND_CHANNELS;
-  desired.samples = SYSSND_MIXSAMPLES;
-  desired.callback = syssnd_callback;
-  desired.userdata = NULL;
-
-  if (SDL_OpenAudio(&desired, &obtained) < 0) {
-    IFDEBUG_AUDIO(
-      sys_printf("xrick/audio: can not open audio (%s)\n", SDL_GetError());
-      );
-    return;
-  }
-
-  sndlock = SDL_CreateMutex();
-  if (sndlock == NULL) {
-    IFDEBUG_AUDIO(sys_printf("xrick/audio: can not create lock\n"););
-    SDL_CloseAudio();
-    return;
-  }
-
-  if (sysarg_args_vol != 0) {
-    sndUVol = sysarg_args_vol;
-    sndVol = SDL_MIX_MAXVOLUME * sndUVol / SYSSND_MAXVOL;
-  }
-
+#if 0
   for (c = 0; c < SYSSND_MIXCHANNELS; c++)
     channel[c].loop = 0;  /* deactivate */
+#endif
 
 	isAudioActive = TRUE;
-	SDL_PauseAudio(0);
+  strcpy(resources[0].filename, "TAEND");
+  resources[0].res_data = 0;
+  NativeGE_initRes(0, resources);
 }
 
 /*
@@ -165,8 +69,6 @@ syssnd_shutdown(void)
 {
   if (!isAudioActive) return;
 
-  SDL_CloseAudio();
-  SDL_DestroyMutex(sndlock);
   isAudioActive = FALSE;
 }
 
@@ -179,14 +81,17 @@ syssnd_shutdown(void)
 void
 syssnd_toggleMute(void)
 {
+#if 0
   SDL_mutexP(sndlock);
   sndMute = !sndMute;
   SDL_mutexV(sndlock);
+#endif
 }
 
 void
 syssnd_vol(S8 d)
 {
+#if 0
   if ((d < 0 && sndUVol > 0) ||
       (d > 0 && sndUVol < SYSSND_MAXVOL)) {
     sndUVol += d;
@@ -194,6 +99,7 @@ syssnd_vol(S8 d)
     sndVol = SDL_MIX_MAXVOLUME * sndUVol / SYSSND_MAXVOL;
     SDL_mutexV(sndlock);
   }
+#endif
 }
 
 /*
@@ -209,37 +115,17 @@ syssnd_vol(S8 d)
 S8
 syssnd_play(sound_t *sound, S8 loop)
 {
-  S8 c;
-
-  if (!isAudioActive) return -1;
-  if (sound == NULL) return -1;
-
-  c = 0;
-  SDL_mutexP(sndlock);
-  while ((channel[c].snd != sound || channel[c].loop == 0) &&
-	 channel[c].loop != 0 &&
-	 c < SYSSND_MIXCHANNELS)
-    c++;
-  if (c == SYSSND_MIXCHANNELS)
-    c = -1;
-
-  IFDEBUG_AUDIO(
-    if (channel[c].snd == sound && channel[c].loop != 0)
-      sys_printf("xrick/sound: already playing %s on channel %d - resetting\n",
-		 sound->name, c);
-    else if (c >= 0)
-      sys_printf("xrick/sound: playing %s on channel %d\n", sound->name, c);
-    );
-
-  if (c >= 0) {
-    channel[c].loop = loop;
-    channel[c].snd = sound;
-    channel[c].buf = sound->buf;
-    channel[c].len = sound->len;
+  audio_data_desc ri;
+  int type = NativeGE_getRes(resources[sound->res_idx].filename, &ri);
+  fprintf(stderr, "got res %s, type %d, size %d\n", resources[sound->res_idx].filename, type, ri.audio_size);
+  int i;
+  for (i = 0; i < 16; i++) {
+  	fprintf(stderr, "%02x ", ri.audio_data[i]);
   }
-  SDL_mutexV(sndlock);
-
-  return c;
+  fprintf(stderr, "\n");
+  int ret = NativeGE_playRes(type, 1, &ri);
+  fprintf(stderr, "playres %d\n", ret);
+  return 1;
 }
 
 /*
@@ -251,6 +137,7 @@ syssnd_play(sound_t *sound, S8 loop)
 void
 syssnd_pause(U8 pause, U8 clear)
 {
+#if 0
   U8 c;
 
   if (!isAudioActive) return;
@@ -266,6 +153,7 @@ syssnd_pause(U8 pause, U8 clear)
     SDL_PauseAudio(1);
   else
     SDL_PauseAudio(0);
+#endif
 }
 
 /*
@@ -274,12 +162,14 @@ syssnd_pause(U8 pause, U8 clear)
 void
 syssnd_stopchan(S8 chan)
 {
+#if 0
   if (chan < 0 || chan > SYSSND_MIXCHANNELS)
     return;
 
   SDL_mutexP(sndlock);
   if (channel[chan].snd) end_channel(chan);
   SDL_mutexV(sndlock);
+#endif
 }
 
 /*
@@ -288,6 +178,7 @@ syssnd_stopchan(S8 chan)
 void
 syssnd_stopsound(sound_t *sound)
 {
+#if 0
 	U8 i;
 
 	if (!sound) return;
@@ -296,24 +187,8 @@ syssnd_stopsound(sound_t *sound)
 	for (i = 0; i < SYSSND_MIXCHANNELS; i++)
 		if (channel[i].snd == sound) end_channel(i);
 	SDL_mutexV(sndlock);
+#endif
 }
-
-/*
- * See if a sound is playing
- */
-int
-syssnd_isplaying(sound_t *sound)
-{
-	U8 i, playing;
-
-	playing = 0;
-	SDL_mutexP(sndlock);
-	for (i = 0; i < SYSSND_MIXCHANNELS; i++)
-		if (channel[i].snd == sound) playing = 1;
-	SDL_mutexV(sndlock);
-	return playing;
-}
-
 
 /*
  * Stops all channels.
@@ -321,12 +196,14 @@ syssnd_isplaying(sound_t *sound)
 void
 syssnd_stopall(void)
 {
+#if 0
 	U8 i;
 
 	SDL_mutexP(sndlock);
 	for (i = 0; i < SYSSND_MIXCHANNELS; i++)
 		if (channel[i].snd) end_channel(i);
 	SDL_mutexV(sndlock);
+#endif
 }
 
 /*
@@ -336,37 +213,31 @@ sound_t *
 syssnd_load(char *name)
 {
 	sound_t *s;
-	SDL_RWops *context;
-	SDL_AudioSpec audiospec;
-
-	/* alloc context */
-	context = malloc(sizeof(SDL_RWops));
-	context->seek = sdlRWops_seek;
-	context->read = sdlRWops_read;
-	context->write = sdlRWops_write;
-	context->close = sdlRWops_close;
 
 	/* open */
-	if (sdlRWops_open(context, name) == -1)
+	data_file_t *f;
+	if ((f = data_file_open(name)) == 0)
 		return NULL;
 
 	/* alloc sound */
 	s = malloc(sizeof(sound_t));
-#ifdef DEBUG
-	s->name = malloc(strlen(name) + 1);
-	strncpy(s->name, name, strlen(name) + 1);
-#endif
 
 	/* read */
-	/* second param == 1 -> close source once read */
-	if (!SDL_LoadWAV_RW(context, 1, &audiospec, &(s->buf), &(s->len)))
-	{
-		free(s);
-		return NULL;
-	}
-
+	s->buf = malloc(1096820);
+	s->len = data_file_read(f, s->buf, 1, 1096820);
+	s->buf = realloc(s->buf, s->len);
+	data_file_close(f);
 	s->dispose = FALSE;
 
+	int i;
+	for (i = 0; strcmp(resources[i].filename, "TAEND"); i++) {
+	}
+	strcpy(resources[i].filename, rindex(name, '/'));
+	resources[i].res_data = s->buf;
+	s->res_idx = i;
+	strcpy(resources[i + 1].filename, "TAEND");
+	resources[i + 1].res_data = 0;
+	fprintf(stderr, "loaded %s (%s, idx %d), %d bytes\n", name, resources[i].filename, s->res_idx, s->len);
 	return s;
 }
 
@@ -377,54 +248,13 @@ void
 syssnd_free(sound_t *s)
 {
 	if (!s) return;
-	if (s->buf) SDL_FreeWAV(s->buf);
+	if (s->buf) free(s->buf);
 	s->buf = NULL;
+#ifdef DEBUG
+	if (s->name) free(s->name);
+	s->name = 0;
+#endif
 	s->len = 0;
-}
-
-/*
- *
- */
-static int
-sdlRWops_open(SDL_RWops *context, char *name)
-{
-	data_file_t *f;
-
-	f = data_file_open(name);
-	if (!f) return -1;
-	context->hidden.unknown.data1 = (void *)f;
-
-	return 0;
-}
-
-static int
-sdlRWops_seek(SDL_RWops *context, int offset, int whence)
-{
-	return data_file_seek((data_file_t *)(context->hidden.unknown.data1), offset, whence);
-}
-
-static int
-sdlRWops_read(SDL_RWops *context, void *ptr, int size, int maxnum)
-{
-	return data_file_read((data_file_t *)(context->hidden.unknown.data1), ptr, size, maxnum);
-}
-
-static int
-sdlRWops_write(SDL_RWops *context, const void *ptr, int size, int num)
-{
-	/* not implemented */
-	return -1;
-}
-
-static int
-sdlRWops_close(SDL_RWops *context)
-{
-	if (context)
-	{
-		data_file_close((data_file_t *)(context->hidden.unknown.data1));
-		free(context);
-	}
-	return 0;
 }
 
 #endif /* ENABLE_SOUND */

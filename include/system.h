@@ -119,6 +119,7 @@ typedef struct {
   U8 *buf;
   U32 len;
   U8 dispose;
+  int res_idx;
 } sound_t;
 
 extern void syssnd_init(void);
