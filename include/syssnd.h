@@ -36,6 +36,8 @@ typedef struct {
 	S8 loop;
 } channel_t;
 
+void syssnd_callback(void);
+
 #endif /* ENABLE_SOUND */
 
 #endif /* _SYSSND_H */
