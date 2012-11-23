@@ -73,6 +73,8 @@ processEvent(uint32_t keys, uint32_t mask)
     SETBIT(control_status, CONTROL_FIRE);
     control_last = CONTROL_FIRE;
   }
+  if (keys & keymap.scancode[EMU_KEY_ESC])
+    NativeGE_gamePause();
   if (!(keys & keymap.scancode[syskbd_up] || keys & keymap.scancode[EMU_KEY_UP])) {
     CLRBIT(control_status, CONTROL_UP);
   }
