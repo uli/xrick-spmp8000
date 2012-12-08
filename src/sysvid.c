@@ -87,7 +87,7 @@ void initScreen(U16 w, U16 h)
   gp.pixels = malloc(w * h * 2);
   gp.width = w;
   gp.height = h;
-  gp.unknown_flag = 0;
+  gp.has_palette = 0;
   gp.src_clip_x = 0;
   gp.src_clip_y = 0;
   gp.src_clip_w = w;

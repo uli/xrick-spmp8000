@@ -140,7 +140,7 @@ syssnd_shutdown(void)
 {
   if (!isAudioActive) return;
 
-  emuIfSoundCleanup(&sp);
+  emuIfSoundCleanup();
   isAudioActive = FALSE;
 }
 
